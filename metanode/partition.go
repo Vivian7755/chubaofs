@@ -533,7 +533,7 @@ func (mp *metaPartition) UpdatePeers(peers []proto.Peer) {
 
 // DeleteRaft deletes the raft partition.
 func (mp *metaPartition) DeleteRaft() (err error) {
-	err = mp.raftPartition.Delete()
+	err = mp.raftPartition.Expired()
 	return
 }
 
@@ -646,16 +646,28 @@ func (mp *metaPartition) Reset() (err error) {
 	mp.applyID = 0
 
 	// remove files
-	filenames := []string{applyIDFile, dentryFile, inodeFile, extendFile, multipartFile}
-	for _, filename := range filenames {
-		filepath := path.Join(mp.config.RootDir, filename)
-		if err = os.Remove(filepath); err != nil {
-			return
-		}
+	//filenames := []string{applyIDFile, dentryFile, inodeFile, extendFile, multipartFile}
+	//for _, filename := range filenames {
+	//	filepath := path.Join(mp.config.RootDir, filename)
+	//	if err = os.Remove(filepath); err != nil {
+	//		return
+	//	}
+	//}
+
+	filePath := mp.config.RootDir
+
+	if strings.HasSuffix(filePath, "/") {
+		filePath = filePath[:len(filePath)-1]
 	}
+
+	dir := path.Dir(filePath)
+	fileName := path.Base(filePath)
+
+	err = os.Rename(filePath, path.Join(dir, ExpiredPartitionPrefix+fileName))
 
 	return
 }
+
 //
 func (mp *metaPartition) canRemoveSelf() (canRemove bool, err error) {
 	var partition *proto.MetaPartitionInfo

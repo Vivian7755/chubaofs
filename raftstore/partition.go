@@ -16,6 +16,8 @@ package raftstore
 
 import (
 	"os"
+	"path"
+	"strings"
 
 	"github.com/tiglabs/raft"
 	"github.com/tiglabs/raft/proto"
@@ -45,6 +47,9 @@ type Partition interface {
 
 	// Delete stops and deletes the partition.
 	Delete() error
+
+	// Expired stops and deletes the partition.
+	Expired() error
 
 	// Status returns the current raft status.
 	Status() (status *PartitionStatus)
@@ -107,6 +112,23 @@ func (p *partition) Delete() (err error) {
 		return
 	}
 	err = os.RemoveAll(p.walPath)
+	return
+}
+
+// stops and expired the partition.
+func (p *partition) Expired() (err error) {
+	if err = p.Stop(); err != nil {
+		return
+	}
+
+	if strings.HasSuffix(p.walPath, "/") {
+		p.walPath = p.walPath[:len(p.walPath)-1]
+	}
+
+	dir := path.Dir(p.walPath)
+	fileName := path.Base(p.walPath)
+
+	err = os.Rename(p.walPath, path.Join(dir, "expired_"+fileName))
 	return
 }
 
